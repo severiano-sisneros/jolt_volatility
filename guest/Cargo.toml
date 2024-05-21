@@ -1,0 +1,16 @@
+[package]
+name = "guest"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "guest"
+path = "./src/lib.rs"
+
+[features]
+guest = []
+
+[dependencies]
+alloy-primitives = { version = "0.7.4", default-features = false, features = ["serde"] }
+jolt = { package = "jolt-sdk", git = "https://github.com/a16z/jolt" }
+swap = {path = "../swap"}

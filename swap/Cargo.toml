@@ -1,0 +1,9 @@
+[package]
+name = "swap"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+alloy-primitives = { version = "0.7.4", features = ["serde"], default-features = false }
+serde = { version = "1.0.202", default-features = false }

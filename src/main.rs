@@ -1,30 +1,34 @@
+#![no_std]
 
 extern crate alloc;
-use alloc::vec::Vec as Avec;
+use alloc::vec::Vec;
+use core::f32::EPSILON as EPSILON_F32;
 
 pub fn main() {
-    // Create a vector of u32 tick values for test
-    let mut ticks = Avec::new();
-    for i in 0..16 {
-        ticks.push(i % 8);
+    
+    // Test ticks
+    let n = 1024;
+    let mut ticks: Vec<u32> = Vec::new();
+    for i in 0..n {
+        ticks.push(i as u32 % 7);
     }
 
-    let inv_n = 1.0/ticks.len() as f64;
-    let inv_n1 = 1.0/(ticks.len() - 1) as f64;
-
-    let mut sum_ui = 0f64;
-    let mut sum_ui2 = 0f64;
-    for i in 1..ticks.len() {
-        let ui = ticks[i] as f64 - ticks[i - 1] as f64;
-        sum_ui += ui;
-        sum_ui2 += ui * ui; 
+    // Calculate the volatility squared, s2, using ticks
+    let mut sum_u = 0.0;
+    let mut sum_u2 = 0.0;
+    for idx in 1..ticks.len() {
+        sum_u += ticks[idx] as f32 - ticks[idx-1] as f32;
+        sum_u2 += (ticks[idx] as f32 - ticks[idx-1] as f32) * (ticks[idx] as f32 - ticks[idx-1] as f32);
     }
-    let s2 = inv_n1 as f64 * (sum_ui2 as f64 - sum_ui as f64 * sum_ui as f64 * inv_n as f64);
-    let s = s2.sqrt();
-    // s2
-    let (prove_volatility, verify_volatility) = guest::build_volatility();
-    let (output, proof) = prove_volatility(s, ticks, inv_n, inv_n1);
-    let is_valid = verify_volatility(proof);
-    assert!(is_valid);
-    assert_eq!(output, true);
+
+    let n = ticks.len() as f32;
+    let s2: f32 = (sum_u2 - sum_u/n) / (n - 1.0);
+
+    // Prove and verify the volatility squared
+    let (prove_tick_volatility2, verify_tick_volatility2) = guest::build_tick_volatility2();
+    let ((sum_u2_out, n), proof) = prove_tick_volatility2(ticks);
+    assert!(sum_u2_out - s2 <= EPSILON_F32);
+    assert!(n - n <= EPSILON_F32);
+    assert!(verify_tick_volatility2(proof));
+
 }

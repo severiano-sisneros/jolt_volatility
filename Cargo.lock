@@ -754,7 +754,6 @@ version = "0.1.0"
 dependencies = [
  "jolt-sdk",
  "serde",
- "serde_derive",
 ]
 
 [[package]]
@@ -1771,8 +1770,6 @@ version = "0.1.0"
 dependencies = [
  "guest",
  "jolt-sdk",
- "serde",
- "serde_derive",
 ]
 
 [[package]]

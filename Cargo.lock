@@ -1768,6 +1768,7 @@ dependencies = [
 name = "simple_volatility"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "guest",
  "jolt-sdk",
 ]

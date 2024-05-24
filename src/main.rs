@@ -30,6 +30,12 @@ pub fn main() {
         read_ticks_from_reader(&mut reader)
     };
 
+    let n = Fixed::from_num(ticks.len());
+    let n_inv_sqrt = Fixed::ONE / n.sqrt();
+    let n_inv_sqrt_bytes = Fixed::to_be_bytes(n_inv_sqrt);
+    let n1_inv = Fixed::ONE / (n - Fixed::ONE);
+    let n1_inv_bytes = Fixed::to_be_bytes(n1_inv);
+
     // Calculate the volatility squared, s2, using ticks
     let mut sum_u = Fixed::ZERO;
     let mut sum_u2 = Fixed::ZERO;
@@ -38,17 +44,13 @@ pub fn main() {
         let ticks_curr = Fixed::from_be_bytes(ticks[idx]);
         let delta = ticks_curr - ticks_prev;
         ticks_prev = ticks_curr;
-        sum_u += delta;
-        sum_u2 += delta * delta;
+        sum_u += delta * n_inv_sqrt;
+        sum_u2 += delta * delta * n1_inv;
     }
 
-    let n = Fixed::from_num(ticks.len());
-    let n_inv = Fixed::ONE / n;
-    let n_inv_bytes = Fixed::to_be_bytes(n_inv);
-    let n1_inv = Fixed::ONE / (n - Fixed::ONE);
-    let n1_inv_bytes = Fixed::to_be_bytes(n1_inv);
+    
 
-    let s2 = (sum_u2 - ((sum_u * sum_u) * n_inv)) * n1_inv;
+    let s2 = sum_u2 - (sum_u * sum_u) * n1_inv;
 
 
     println!("Volatility squared: {}", s2);
@@ -58,7 +60,7 @@ pub fn main() {
     let (prove_tick_volatility2, verify_tick_volatility2) = guest::build_tick_volatility2();
     println!("Done!");
     println!("Proving...");
-    let ((s2_out, n_out), proof) = prove_tick_volatility2(ticks, n_inv_bytes, n1_inv_bytes);
+    let ((s2_out, n_out), proof) = prove_tick_volatility2(ticks, n_inv_sqrt_bytes, n1_inv_bytes);
     ("Done!");
     let s2_out = Fixed::from_be_bytes(s2_out);
     let n_out = Fixed::from_be_bytes(n_out);

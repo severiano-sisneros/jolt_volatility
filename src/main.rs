@@ -1,12 +1,10 @@
-
-
 extern crate alloc;
 extern crate clap;
 
 use alloc::vec::Vec;
 use clap::Parser;
-use std::io::{self, BufRead};
 use fixed::types::I10F22 as Fixed;
+use std::io::{self, BufRead};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -30,6 +28,8 @@ pub fn main() {
         read_ticks_from_reader(&mut reader)
     };
 
+    // Calculate  1/(n-1) and the square root of 1/n.
+    // These values are used in the volatility proof.
     let n = Fixed::from_num(ticks.len());
     let n_inv_sqrt = Fixed::ONE / n.sqrt();
     let n_inv_sqrt_bytes = Fixed::to_be_bytes(n_inv_sqrt);
@@ -48,26 +48,26 @@ pub fn main() {
         sum_u2 += delta * delta * n1_inv;
     }
 
-    
-
     let s2 = sum_u2 - (sum_u * sum_u) * n1_inv;
-
-
     println!("Volatility squared: {}", s2);
 
-    // Prove and verify the volatility squared
+    // Build the volatility circuit
     println!("Building circuit...");
     let (prove_tick_volatility2, verify_tick_volatility2) = guest::build_tick_volatility2();
     println!("Done!");
+
+    // Prove volatility
     println!("Proving...");
     let ((s2_out, n_out), proof) = prove_tick_volatility2(ticks, n_inv_sqrt_bytes, n1_inv_bytes);
-    ("Done!");
     let s2_out = Fixed::from_be_bytes(s2_out);
     let n_out = Fixed::from_be_bytes(n_out);
     println!("s2: {:?}, n: {:?}", s2_out, n_out);
+    println!("Done!");
+
+    // Verify volatitility
+    println!("Verifying...");
     assert!(s2_out == s2);
     assert!(n_out == n);
-    println!("Verifying...");
     assert!(verify_tick_volatility2(proof));
     println!("All checks passed!");
 }

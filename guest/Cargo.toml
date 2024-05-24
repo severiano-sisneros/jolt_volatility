@@ -11,5 +11,6 @@ path = "./src/lib.rs"
 guest = []
 
 [dependencies]
+fixed = "1.27.0"
 jolt = { package = "jolt-sdk", git = "https://github.com/a16z/jolt" }
 serde = { version = "1.0.202", default-features = false, features = ["derive", "alloc"] }

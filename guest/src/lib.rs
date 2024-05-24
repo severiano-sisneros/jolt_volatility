@@ -4,15 +4,27 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
+use fixed::types::I10F22 as Fixed;
 
-#[jolt::provable]
-fn tick_volatility2 (values: Vec<u32>) -> (f32, f32) {
-    let n = values.len() as f32;
-    let mut sum_u: f32 = 0.0;
-    let mut sum_u2: f32 = 0.0;
-    for idx in 1..n as usize {
-        sum_u += values[idx] as f32 - values[idx-1] as f32;
-        sum_u2 += (values[idx] as f32 - values[idx-1] as f32) * (values[idx] as f32 - values[idx-1] as f32);
+#[jolt::provable(max_input_size = 10000)]
+fn tick_volatility2 (values: Vec<[u8; 4]>, n_inv: [u8; 4], n1_inv: [u8; 4]) -> ([u8; 4], [u8; 4]) {
+    let n = Fixed::from_num(values.len());
+    let n_inv = Fixed::from_be_bytes(n_inv);
+    let n1_inv = Fixed::from_be_bytes(n1_inv);
+
+    let mut sum_u = Fixed::ZERO;
+    let mut sum_u2 = Fixed::ZERO;
+    let mut ticks_prev = Fixed::from_be_bytes(values[0]);
+    for idx in 1..values.len() {
+        let ticks_curr = Fixed::from_be_bytes(values[idx]);
+        let delta = ticks_curr - ticks_prev;
+        ticks_prev = ticks_curr;
+        sum_u += delta;
+        sum_u2 += delta * delta;
     }
-    ((sum_u2 - sum_u/n)/(n-1.0), n)
+
+    let s2_bytes = Fixed::to_be_bytes((sum_u2 - ((sum_u * sum_u) * n_inv)) * n1_inv);
+    let n_bytes = Fixed::to_be_bytes(n);
+    
+    (s2_bytes, n_bytes)
 }

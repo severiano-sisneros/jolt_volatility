@@ -3,8 +3,9 @@ extern crate clap;
 
 use alloc::vec::Vec;
 use clap::Parser;
-use fixed::types::I10F22 as Fixed;
+use fixed::types::I15F17 as Fixed;
 use std::io::{self, BufRead};
+use std::time::Instant;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -37,16 +38,15 @@ pub fn main() {
     let n1_inv_bytes = Fixed::to_be_bytes(n1_inv);
 
     // Calculate the volatility squared, s2, using ticks
-    let mut sum_u = Fixed::ZERO;
-    let mut sum_u2 = Fixed::ZERO;
     let mut ticks_prev = Fixed::from_be_bytes(ticks[0]);
-    for idx in 1..ticks.len() {
-        let ticks_curr = Fixed::from_be_bytes(ticks[idx]);
-        let delta = ticks_curr - ticks_prev;
-        ticks_prev = ticks_curr;
-        sum_u += delta * n_inv_sqrt;
-        sum_u2 += delta * delta * n1_inv;
-    }
+    let (sum_u, sum_u2) = ticks
+        .iter()
+        .fold((Fixed::ZERO, Fixed::ZERO), |(su, su2), tick| {
+            let ticks_curr = Fixed::from_be_bytes(*tick);
+            let delta = ticks_curr - ticks_prev;
+            ticks_prev = ticks_curr;
+            (su + delta * n_inv_sqrt, su2 + delta * delta * n1_inv)
+        });
 
     let s2 = sum_u2 - (sum_u * sum_u) * n1_inv;
     println!("Volatility squared: {}", s2);
@@ -58,11 +58,14 @@ pub fn main() {
 
     // Prove volatility
     println!("Proving...");
+    let start_time = Instant::now();
     let ((s2_out, n_out), proof) = prove_tick_volatility2(ticks, n_inv_sqrt_bytes, n1_inv_bytes);
     let s2_out = Fixed::from_be_bytes(s2_out);
     let n_out = Fixed::from_be_bytes(n_out);
     println!("s2: {:?}, n: {:?}", s2_out, n_out);
     println!("Done!");
+    let prove_time = Instant::now() - start_time;
+    println!("Prove time: {} seconds", prove_time.as_secs());
 
     // Verify volatitility
     println!("Verifying...");
